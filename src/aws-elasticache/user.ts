@@ -12,7 +12,7 @@ import {
   aws_secretsmanager,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { Engine } from './util';
+import { UserEngine } from './util';
 
 /**
  * Interface for a User
@@ -47,6 +47,13 @@ export interface BaseUserProps {
   readonly userId?: string;
 
   /**
+   * The engine of the user.
+   *
+   * @default - UserEngine.REDIS
+   */
+  readonly engine?: UserEngine;
+
+  /**
    * Access permissions string used for this user.
    * @default - 'off -@all'
    * @see https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/Clusters.RBAC.html#Access-string
@@ -73,6 +80,11 @@ abstract class BaseUser extends Resource implements IUser {
    */
   public readonly userName: string;
 
+  /**
+   * The engine of the user.
+   */
+  public readonly engine: UserEngine;
+
   protected readonly props: BaseUserProps;
 
   protected constructor(scope: Construct, id: string, props: BaseUserProps = {}) {
@@ -85,11 +97,12 @@ abstract class BaseUser extends Resource implements IUser {
     });
 
     this.props = props;
+    this.engine = props.engine ?? UserEngine.REDIS;
 
     this.validateUserId(props.userId);
 
     const user = this.createResource(this, 'Resource', {
-      engine: Engine.REDIS,
+      engine: UserEngine.REDIS,
       userId: this.physicalName,
       userName: this.renderUserName(),
       accessString: this.props.accessString ?? 'off -@all',

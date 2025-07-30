@@ -1,7 +1,7 @@
 import { ArnFormat, IResource, Lazy, Names, Resource, Stack, Token, aws_elasticache } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { IUser } from './user';
-import { Engine } from './util';
+import { UserGroupEngine } from './util';
 
 /**
  * Interface for a User Group
@@ -34,6 +34,13 @@ export interface UserGroupProps {
    * @default - auto generate
    */
   readonly userGroupId?: string;
+
+  /**
+   * The engine of the user group.
+   *
+   * @default - UserGroupEngine.REDIS
+   */
+  readonly engine?: UserGroupEngine;
 
   /**
    * The list of User that belong to the user group.
@@ -94,6 +101,11 @@ export class UserGroup extends Resource implements IUserGroup {
    */
   readonly userGroupId: string;
 
+  /**
+   * The engine of the user group.
+   */
+  readonly engine: UserGroupEngine;
+
   private readonly props: UserGroupProps;
 
   private readonly users: IUser[];
@@ -112,13 +124,14 @@ export class UserGroup extends Resource implements IUserGroup {
     });
     this.props = props;
     this.users = this.props.users;
+    this.engine = this.engine ?? UserGroupEngine.REDIS;
 
     this.validateUserGroupId();
     this.node.addValidation({ validate: () => this.validateDefaultUser() });
     this.node.addValidation({ validate: () => this.validateDuplicateUsernames() });
 
     const userGroup = this.createResource(this, 'Resource', {
-      engine: Engine.REDIS,
+      engine: this.engine,
       userGroupId: this.physicalName,
       userIds: Lazy.list({ produce: () => this.users.map(user => user.userId) }),
     });
